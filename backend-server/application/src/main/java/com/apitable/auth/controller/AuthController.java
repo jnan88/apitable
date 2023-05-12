@@ -51,6 +51,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -88,7 +89,8 @@ public class AuthController {
 
     @Value("${SKIP_REGISTER_VALIDATE:false}")
     private Boolean skipRegisterValidate;
-
+    @Value("${ENABLE_MAIL_DOMAINS:''}")
+    private String enableMailDomains;
     /**
      * Register.
      *
@@ -101,6 +103,11 @@ public class AuthController {
     public ResponseData<Void> register(@RequestBody @Valid final RegisterRO data) {
         if (BooleanUtil.isFalse(skipRegisterValidate)) {
             return ResponseData.error("Validate failure");
+        }
+        String emailHost = StringUtils.substringAfter(data.getUsername(), "@");
+        if (StringUtils.isNotBlank(enableMailDomains) && StringUtils.isNotBlank(emailHost)
+                && (!StringUtils.contains(enableMailDomains, emailHost))) {
+            return ResponseData.error("请使用管理员指定的邮箱进行注册");
         }
         Long userId = iAuthService.register(data.getUsername(), data.getCredential());
         SessionContext.setUserId(userId);
